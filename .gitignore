@@ -1,0 +1,72 @@
+node_modules/
+dist/
+.cache/
+.env
+.env.*
+!.env.example
+coverage/
+*.log
+.expo/
+# Generated native projects; Expo configuration is the source of truth.
+apps/mobile/android/
+apps/mobile/ios/
+*.apk
+*.aab
+
+# Separate project; never publish as part of Trueda Tribe ID.
+/zerotrace/
+# Private operational decisions, source design extracts and historical host diagnostics.
+/docs/audit/
+/docs/progress/
+/docs/roadmap/
+/docs/deployment/
+/docs/qa/
+/docs/figma-context/
+/docs/FIGMA_AUDIT.md
+/docs/VERIFICATION*.md
+/docs/REAL_DEVICE_TESTING.md
+# Private credentials, signing material, backups and local operator state.
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.mobileprovision
+*.ipa
+*.dump
+*.backup
+*.sqlite
+*.sqlite3
+*.db
+*.sql.gz
+/backups/
+/uploads/
+/portraits/
+/secrets/
+/.aws/
+/.vercel/
+/.agents/
+/.codex/
+/test-results/
+/playwright-report/
+__pycache__/
+*.pyc
+
+# Superseded internal authentication design proposal.
+/docs/AUTHENTICATION_DESIGN_PROPOSAL.md
+
+# Raw design-fidelity record with original asset references.
+/docs/HUB_VISUAL_FIDELITY.md
+# Additional signing/service-account files and portable backup archives.
+*.p8
+*.ppk
+*.kdbx
+*.tar
+*.tar.gz
+*.tgz
+*.zip
+credentials.json
+eas-credentials.json
+service-account*.json
+*-service-account.json

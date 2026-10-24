@@ -1,0 +1,22 @@
+{
+  "expo": {
+    "name": "Trueda Tribe ID",
+    "slug": "trueda-tribe-id",
+    "version": "0.1.0",
+    "plugins": [
+      "expo-secure-store",
+      [
+        "expo-notifications",
+        {
+          "defaultChannel": "tribe-notifications"
+        }
+      ]
+    ],
+    "ios": {
+      "bundleIdentifier": "com.trueda.tribeid"
+    },
+    "android": {
+      "package": "com.trueda.tribeid"
+    }
+  }
+}

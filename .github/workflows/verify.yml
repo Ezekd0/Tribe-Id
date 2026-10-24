@@ -1,0 +1,56 @@
+name: Trueda verification
+on:
+  pull_request:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verification-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      PLAYWRIGHT_CHANNEL: chromium
+      EXPO_NO_TELEMETRY: '1'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22.22.2'
+          package-manager-cache: false
+      - name: Install locked workspaces
+        run: npm ci
+      - name: Install isolated PostgreSQL 17 binaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl --fail --silent --show-error https://www.postgresql.org/media/keys/ACCC4CF8.asc -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc
+          printf '%s\n' 'Types: deb' 'URIs: https://apt.postgresql.org/pub/repos/apt' 'Suites: noble-pgdg' 'Architectures: amd64' 'Components: main' 'Signed-By: /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc' | sudo tee /etc/apt/sources.list.d/pgdg.sources >/dev/null
+          sudo apt-get update
+          sudo apt-get install -y postgresql-17
+          echo '/usr/lib/postgresql/17/bin' >> "$GITHUB_PATH"
+      - name: Install browser and operating-system dependencies
+        run: npx --no-install playwright install --with-deps chromium
+      - name: Verify runner rejects failed commands and private environments
+        run: node --test scripts/ci-checks.test.mjs scripts/release-preflight.test.mjs scripts/staging-cost-model.test.mjs
+      - name: Check source, isolated database, mobile exports and browser
+        run: node scripts/ci-checks.mjs
+      - name: Build current runtime image
+        run: docker build --progress=plain -t trueda-tribe-id-api:staging-review-local .
+      - name: Verify offline runtime inventory and native modules
+        run: >-
+          docker run --rm --network none --read-only --cap-drop ALL
+          --security-opt no-new-privileges
+          --mount "type=bind,src=${{ github.workspace }}/scripts/verify-runtime-image.mjs,dst=/verify-runtime-image.mjs,readonly"
+          trueda-tribe-id-api:staging-review-local node /verify-runtime-image.mjs
+      - name: Verify packaged database and mail jobs with local fixtures
+        run: QA_DOCKER_IMAGE=trueda-tribe-id-api:staging-review-local node scripts/verify-operational-runtime.mjs

@@ -1,0 +1,21 @@
+import {test} from 'node:test';import assert from 'node:assert/strict';import {portraitMime,parsePortrait,parsePortraitUpload,privatePortraitUrl,maximumPortraitBytes} from '../features/portrait/portrait-contract';import {putPortrait} from './portrait-upload';import {MemberService} from './member-service';import {systemPickerOpen,withSystemPicker,retainPortraitDraft} from '../features/portrait/system-picker';
+const assetId='11111111-1111-4111-8111-111111111111',tribeId='22222222-2222-4222-8222-222222222222',url='https://'+'a'.repeat(32)+'.eu.r2.cloudflarestorage.com/private/image?X-Amz-Signature=test';const expiresAt=()=>new Date(Date.now()+240000).toISOString();const png=()=>new Uint8Array([137,80,78,71,13,10,26,10,0]);
+test('portrait validates bounded image signatures, private destination and complete response shapes',()=>{
+ assert.equal(portraitMime(png()),'image/png');assert.equal(portraitMime(new Uint8Array([255,216,255])),'image/jpeg');assert.throws(()=>portraitMime(new Uint8Array([60,115,118,103])));assert.throws(()=>portraitMime(new Uint8Array(maximumPortraitBytes+1)));
+ assert.equal(privatePortraitUrl(url),true);for(const invalid of ['http://example.invalid/a','https://example.invalid/a','https://'+ 'a'.repeat(32)+'.eu.r2.cloudflarestorage.com.evil.invalid/a'])assert.equal(privatePortraitUrl(invalid),false);
+ assert.deepEqual(parsePortrait({assetId:null,url:null,expiresAt:null}),{assetId:null,url:null,expiresAt:null});assert.throws(()=>parsePortrait({assetId,url,expiresAt:null}));assert.throws(()=>parsePortraitUpload({assetId,uploadUrl:url,expiresAt:'2000-01-01T00:00:00Z',headers:{'Content-Type':'image/png'}},'image/png'));
+});
+test('signed PUT never includes API bearer/cookies or follows redirects and never retries',async()=>{
+ const ticket={assetId,uploadUrl:url,expiresAt:expiresAt(),headers:{'Content-Type':'image/png' as const}};let calls=0;let sent:RequestInit|undefined;
+ await putPortrait(ticket,png(),async(_input,init)=>{calls++;sent=init;return new Response(null,{status:200});});assert.equal(calls,1);assert.equal(sent?.credentials,'omit');assert.equal(sent?.redirect,'error');assert.deepEqual(sent?.headers,{'Content-Type':'image/png'});assert.deepEqual(new Uint8Array(sent?.body as ArrayBuffer),png());
+ await assert.rejects(putPortrait(ticket,png(),async()=>{calls++;throw new Error('Response lost');}));assert.equal(calls,2);
+ await assert.rejects(putPortrait({...ticket,uploadUrl:'https://external.invalid'},png(),async()=>{calls++;return new Response();}));assert.equal(calls,2);
+});
+test('portrait service uses consent-bound scoped initiation and bodyless finalize/remove',async()=>{
+ const calls:unknown[]=[];const service=new MemberService({get:async<T>(path:string)=>{calls.push({path});return {assetId:null,url:null,expiresAt:null} as T;},write:async<T>(path:string,method:'POST'|'PATCH'|'DELETE',body?:object)=>{calls.push({path,method,body});return {assetId,uploadUrl:url,expiresAt:expiresAt(),headers:{'Content-Type':'image/png'}} as T;},post:async<T>(path:string,body?:Record<string,string>)=>{calls.push({path,method:'POST',body});return undefined as T;},delete:async<T>(path:string)=>{calls.push({path,method:'DELETE'});return undefined as T;}});
+ await service.portrait(tribeId);await service.startPortraitUpload(tribeId,{mimeType:'image/png',sizeBytes:9,consent:true});await service.finalizePortrait(tribeId,assetId);await service.removePortrait(tribeId);
+ assert.deepEqual((calls[1] as {body:unknown}).body,{mimeType:'image/png',sizeBytes:9,consent:true});assert.equal((calls[2] as {body?:unknown}).body,undefined);assert.match((calls[2] as {path:string}).path,/\/uploads\/[^/]+\/finalize$/);assert.equal((calls[3] as {method:string}).method,'DELETE');
+});
+test('system picker suppresses foreground reload only while explicit picker operation runs',async()=>{
+ assert.equal(systemPickerOpen(),false);const release=retainPortraitDraft();assert.equal(systemPickerOpen(),true);release();release();assert.equal(systemPickerOpen(),false);await withSystemPicker(async()=>{assert.equal(systemPickerOpen(),true);});assert.equal(systemPickerOpen(),false);await assert.rejects(withSystemPicker(async()=>{throw new Error('Canceled');}));assert.equal(systemPickerOpen(),false);
+});

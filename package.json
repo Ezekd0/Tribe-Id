@@ -1,0 +1,44 @@
+{
+  "name": "trueda-tribe-id",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=22.13.0 <23 || >=24.0.0 <25"
+  },
+  "scripts": {
+    "dev:web": "npm run dev -w @trueda-tribe-id/web",
+    "dev:api": "npm run dev -w @trueda-tribe-id/api",
+    "typecheck": "npm run build -w @trueda-tribe-id/contracts && npm run typecheck --workspaces --if-present && tsc --project tsconfig.verify.json",
+    "build": "npm run build -w @trueda-tribe-id/contracts && npm run build -w @trueda-tribe-id/api && npm run build -w @trueda-tribe-id/web",
+    "test": "npm run build -w @trueda-tribe-id/contracts && npm run test --workspaces --if-present",
+    "check": "npm run typecheck && npm test && npm run build",
+    "test:browser": "playwright test",
+    "test:database": "node --import tsx scripts/verify-member-database.ts",
+    "test:database-isolated": "node scripts/verify-isolated-database.mjs",
+    "dev:mobile": "npm run dev -w @trueda-tribe-id/mobile --",
+    "test:auth-database": "node --import tsx scripts/verify-mobile-auth.ts",
+    "auth:mail": "node --import tsx scripts/auth-mail-worker.ts",
+    "auth:bootstrap": "node --import tsx scripts/bootstrap-owner.ts",
+    "auth:account-state": "node --import tsx scripts/set-account-state.ts",
+    "test:identity-database": "node --import tsx scripts/verify-identity-auth.ts",
+    "test:device-api": "node --import tsx scripts/verify-device-api.ts",
+    "qa:operator": "node --import tsx scripts/qa-operator.ts"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "@types/node": "26.6.4",
+    "@types/nodemailer": "8.0.2",
+    "@types/pg": "8.23.1",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.1.1",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3",
+    "vite": "8.3.5"
+  }
+}

@@ -1,0 +1,2 @@
+import {defineConfig} from '@playwright/test';
+export default defineConfig({testDir:'.',testMatch:'cards.spec.ts',timeout:30000,workers:1,outputDir:'../../../../.cache/native-cards-results',use:{baseURL:'http://127.0.0.1:8084',headless:true,channel:process.env.PLAYWRIGHT_CHANNEL==='chromium'?undefined:'chrome'},webServer:{command:'CI=1 npx expo start --web --port 8084',cwd:__dirname,url:'http://127.0.0.1:8084',reuseExistingServer:!process.env.CI,timeout:120000}});

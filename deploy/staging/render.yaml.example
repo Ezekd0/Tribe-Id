@@ -1,0 +1,85 @@
+# REVIEW TEMPLATE ONLY. Do not import/sync/create a Blueprint without separate approval.
+# Not named render.yaml; no account, repository, domain, secrets or resources exist by implication.
+# Optional same-origin admin is implemented in the API image; independent backup artifact remains a prerequisite.
+# Each sync:false value must be reviewed/injected using the secret inventory in STAGING_PROPOSAL.md.
+# DATABASE_URL must use a separately issued least-privilege role and verified external TLS hostname.
+# Do not substitute fromDatabase.connectionString: that resolves an internal URL without verify-full support.
+previews:
+  generation: 'off'
+services:
+  - type: web
+    name: trueda-staging-api-review
+    runtime: docker
+    region: frankfurt
+    plan: 1c-2g
+    dockerfilePath: ./Dockerfile
+    autoDeployTrigger: 'off'
+    healthCheckPath: /api/v1/health/ready
+    envVars:
+      - fromGroup: trueda-staging-api-reviewed
+      - key: ADMIN_WEB_DIST
+        value: /app/apps/web/dist
+      # APP_ORIGIN must equal this service's exact provider-assigned HTTPS origin.
+  - type: cron
+    name: trueda-staging-mail-review
+    runtime: docker
+    region: frankfurt
+    plan: 0.5c-512mb
+    dockerfilePath: ./Dockerfile
+    dockerCommand: node apps/api/dist/operations/auth-mail-worker.js
+    autoDeployTrigger: 'off'
+    schedule: '* * * * *'
+    envVars:
+      - fromGroup: trueda-staging-mail-reviewed
+      - key: AUTH_MAIL_DELIVERY_ENABLED
+        value: "false"
+  - type: cron
+    name: trueda-staging-push-review
+    runtime: docker
+    region: frankfurt
+    plan: 0.5c-512mb
+    dockerfilePath: ./Dockerfile
+    dockerCommand: node apps/api/dist/operations/push-worker.js
+    autoDeployTrigger: 'off'
+    schedule: '* * * * *'
+    envVars:
+      - fromGroup: trueda-staging-push-reviewed
+      - key: PUSH_DELIVERY_ENABLED
+        value: "false"
+      - key: INFORMATIONAL_EMAIL_ENABLED
+        value: "false"
+  - type: cron
+    name: trueda-staging-assets-review
+    runtime: docker
+    region: frankfurt
+    plan: 0.5c-512mb
+    dockerfilePath: ./Dockerfile
+    dockerCommand: node apps/api/dist/operations/asset-cleanup.js
+    autoDeployTrigger: 'off'
+    schedule: '* * * * *'
+    envVars:
+      - fromGroup: trueda-staging-assets-reviewed
+  - type: cron
+    name: trueda-staging-retention-review
+    runtime: docker
+    region: frankfurt
+    plan: 0.5c-512mb
+    dockerfilePath: ./Dockerfile
+    dockerCommand: node packages/database/cleanup.mjs
+    autoDeployTrigger: 'off'
+    schedule: '15 3 * * *'
+    envVars:
+      - fromGroup: trueda-staging-retention-reviewed
+# Secret groups deliberately refer to separately reviewed, precreated account configuration.
+# No envVarGroups definition here: do not generate credentials or copy all API secrets to every worker.
+databases:
+  - name: trueda-staging-db-review
+    region: frankfurt
+    plan: 0.5c-1g
+    postgresMajorVersion: '18'
+    diskSizeGB: 5
+    storageAutoscalingEnabled: false
+    databaseName: trueda_staging
+    ipAllowList: [] # deny external access until exact service/operator egress CIDRs are approved
+# No automatic preDeployCommand: migration requires backup and a separate migration role/release action.
+# No backup cron: API image lacks PostgreSQL client tools and a qualified encrypted-backup implementation.

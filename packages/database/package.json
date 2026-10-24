@@ -1,0 +1,14 @@
+{
+  "name": "@trueda-tribe-id/database",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "migrate": "node migrate.mjs",
+    "verify": "node verify.mjs",
+    "cleanup": "node cleanup.mjs"
+  },
+  "dependencies": {
+    "pg": "8.23.1"
+  }
+}

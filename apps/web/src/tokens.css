@@ -1,0 +1,17 @@
+/* Observed Figma values. No desktop layout or semantic state palette is defined in the source. */
+:root {
+  color-scheme: dark;
+  --color-background: #010101;
+  --color-text: #ffffff;
+  --color-text-muted: rgb(255 255 255 / 80%);
+  --color-text-subtle: rgb(255 255 255 / 50%);
+  --color-accent: #7d57bb;
+  --color-border: rgb(255 255 255 / 70%);
+  --color-border-subtle: rgb(255 255 255 / 10%);
+  --radius-card: 5px;
+  --radius-control: 2px;
+  --space-page: 24px;
+  --space-section: 24px;
+  --font-heading: 'Montserrat', sans-serif;
+  --font-body: 'Inter', sans-serif;
+}

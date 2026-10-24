@@ -1,0 +1,14 @@
+import {test} from 'node:test';import assert from 'node:assert/strict';import Fastify from 'fastify';
+import {ApiClient} from './client';import {MemberService} from './member-service';
+import {hashSessionToken} from '../../../api/src/modules/authentication/session';import {developmentMemberView} from '../../../api/src/development/member-fixture';
+test('native service registers, cancels, re-registers and reloads through actual bearer routes',async t=>{
+ const apiModule=(path:string)=>import('../../../api/src/'+path);const [{registerEventRegistrationRoutes},{registerMemberRoutes},{readEnvironment}]=await Promise.all([apiModule('modules/events/routes.ts'),apiModule('modules/members/routes.ts'),apiModule('config/env.ts')]);
+ const view=structuredClone(developmentMemberView),event=view.events[0]!,token='e'.repeat(43),operations:string[]=[];event.id='12345678-1234-1234-1234-123456789abc';event.registrationStatus=null;
+ const sessions={resolve:async(hash:string)=>hash===hashSessionToken(token)?{userId:'user',sessionId:'session',email:'member@example.invalid'}:null,revoke:async()=>{}};const app=Fastify();t.after(()=>app.close());
+ await registerMemberRoutes(app,readEnvironment({NODE_ENV:'test'}),{sessions,members:{memberships:async()=>[],membership:async()=>({userId:'user',tribeId:view.identity.tribeId,role:'member',status:'active'}),view:async()=>view}});
+ registerEventRegistrationRoutes(app,{change:async(identity:{userId:string},tribeId:string,eventId:string,operation:string)=>{assert.equal(identity.userId,'user');assert.equal(tribeId,view.identity.tribeId);assert.equal(eventId,event.id);operations.push(operation);event.registrationStatus=operation==='register'?'registered':'cancelled';}},sessions);
+ const transport:typeof fetch=async(input,init)=>{const response=await app.inject({method:init?.method as 'GET'|'POST'|'DELETE',url:new URL(String(input)).pathname,headers:Object.fromEntries(new Headers(init?.headers)),payload:init?.body as string|undefined});return new Response(response.statusCode===204?null:response.body,{status:response.statusCode,headers:response.headers as Record<string,string>});};
+ const service=new MemberService(new ApiClient('https://api.example.invalid',{token:()=>token,refresh:async()=>null,clear:async()=>{}},transport));
+ for(const operation of ['register','cancel','register'] as const){await service.eventRegistration(view.identity.tribeId,event.id,operation);assert.equal((await service.events(view.identity.tribeId)).events[0]!.registrationStatus,operation==='register'?'registered':'cancelled');}
+ assert.deepEqual(operations,['register','cancel','register']);const denied=await app.inject({method:'POST',url:`/api/v1/tribes/${view.identity.tribeId}/events/${event.id}/registration`});assert.equal(denied.statusCode,401);assert.equal(operations.length,3);
+});

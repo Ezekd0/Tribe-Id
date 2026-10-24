@@ -1,0 +1,39 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "noEmit": true
+  },
+  "include": [
+    "apps/api/src/**/*.test.ts",
+    "scripts/verify-member-database.ts",
+    "tests/browser/**/*.ts",
+    "playwright.config.ts",
+    "scripts/verify-mobile-auth.ts",
+    "scripts/native-hub-integration.test.ts",
+    "scripts/verify-identity-auth.ts",
+    "scripts/verify-invitation-audit.ts",
+    "scripts/verify-profile-updates.ts",
+    "scripts/verify-event-registration.ts",
+    "scripts/verify-approval-history.ts",
+    "scripts/verify-card-lifecycle.ts",
+    "scripts/verify-announcement-management.ts",
+    "scripts/verify-event-management.ts",
+    "scripts/verify-administration.ts",
+    "scripts/verify-member-preferences.ts",
+    "scripts/verify-notification-inbox.ts",
+    "scripts/verify-private-portraits.ts",
+    "scripts/verify-privacy-requests.ts",
+    "scripts/verify-push-devices.ts",
+    "scripts/verify-expo-delivery.ts",
+    "scripts/verify-notification-delivery.ts",
+    "scripts/auth-mail-worker.ts",
+    "scripts/bootstrap-owner.ts",
+    "scripts/set-account-state.ts",
+    "scripts/verify-device-api.ts",
+    "scripts/qa-operator.ts",
+    "scripts/start-local-api-verified.ts",
+    "scripts/verify-same-origin-admin.ts"
+  ]
+}

@@ -1,0 +1,21 @@
+import {useCallback} from 'react';
+import {StyleSheet,Text,View} from 'react-native';
+import type {MemberService,IDCardResponse} from '../../api/member-service';
+import {useResource} from '../../state/use-resource';
+import {FeaturePage,ResourceBoundary} from '../../components/FeaturePage';
+import {EmptyState} from '../../components/UI';
+import {Avatar} from '../../components/tribe/Avatar';
+import {TribeIcon} from '../../components/tribe/Icon';
+import {CardVerification} from './CardVerification';
+import {tokens} from '../../theme/tokens';
+export function DigitalIDCard({data}:{data:IDCardResponse}) {
+  const {identity,card,location}=data;
+  if(!card)return <EmptyState message="Your Tribe ID card has not been issued yet."/>;
+  const active=identity.status==='active'&&card.status==='issued';
+  return <View style={s.mount}><View style={s.card} accessibilityLabel={`ID card for ${identity.displayName}, member ${identity.memberNumber}, ${card.status}`}><View style={s.top}><View accessibilityLabel="Tribe logo artwork pending" style={s.logo}><Text style={s.pending}>LOGO</Text></View><View style={s.badge}><Text style={s.badgeText}>{active?'ACTIVE MEMBER':card.status.toUpperCase()}</Text></View></View><View style={s.identity}><Avatar uri={identity.avatarUrl} size={84}/><View style={s.details}><Text style={s.name}>{identity.displayName.toUpperCase()}</Text><Text style={s.role}>TRIBE MEMBER</Text><Text style={s.number}>{identity.memberNumber}</Text><View style={s.row}><TribeIcon name="map-pin" size={11}/><Text style={s.small}>{location||'Location not provided'}</Text></View><Text style={s.since}>Member Since {identity.joinedAt?new Date(identity.joinedAt).toLocaleDateString('en',{month:'short',year:'numeric',timeZone:'UTC'}):'not available'}</Text></View><View accessibilityLabel="Card verification is available below" style={s.verification}/></View><View style={s.divider}/></View>{!active&&<Text style={s.warning}>This card is {card.status}. It does not establish active membership.</Text>}</View>;
+}
+export function IDCardScreen({service,tribeId,onExpired}:{service:MemberService;tribeId:string;onExpired:()=>void}) {
+  const load=useCallback(()=>service.idCard(tribeId),[service,tribeId]);const resource=useResource(load,onExpired);
+  return <FeaturePage title="My ID Card" subtitle="Your digital identity in the Tribe."><ResourceBoundary {...resource}>{data=><><DigitalIDCard data={data}/><CardVerification key={tribeId} service={service} tribeId={tribeId} canPresent={data.identity.status==='active'&&data.card?.status==='issued'&&(!data.card.expiresAt||Date.parse(data.card.expiresAt)>Date.now())} onExpired={onExpired}/></>}</ResourceBoundary></FeaturePage>;
+}
+const s=StyleSheet.create({mount:{backgroundColor:'rgba(255,255,255,0.1)',borderWidth:1,borderColor:tokens.colors.subtleBorder,borderRadius:5,padding:14,minHeight:230,justifyContent:'center',gap:10},card:{backgroundColor:'black',minHeight:185,borderWidth:1,borderColor:tokens.colors.subtleBorder,borderRadius:5,padding:12,gap:10},top:{flexDirection:'row',justifyContent:'space-between',alignItems:'flex-start'},logo:{width:50,height:43,backgroundColor:tokens.colors.placeholder,justifyContent:'center',alignItems:'center'},pending:{fontFamily:tokens.fonts.body,fontSize:7,color:tokens.colors.muted},badge:{padding:4,borderWidth:1,borderColor:'rgba(125,87,187,0.3)',borderRadius:2},badgeText:{fontFamily:tokens.fonts.semibold,fontSize:8,color:'white'},identity:{flexDirection:'row',alignItems:'center',gap:10,flexWrap:'wrap'},details:{flex:1,minWidth:110,gap:7},name:{fontFamily:tokens.fonts.semibold,fontSize:12,color:'white'},role:{fontFamily:tokens.fonts.semibold,fontSize:7.568,color:tokens.colors.accent},number:{fontFamily:tokens.fonts.body,fontWeight:'300',fontSize:12,color:'white'},row:{flexDirection:'row',gap:4,alignItems:'flex-start'},small:{fontFamily:tokens.fonts.body,fontSize:10,color:'white',flexShrink:1},since:{fontFamily:tokens.fonts.body,fontSize:8.871,color:tokens.colors.secondary},verification:{width:50,height:50,borderWidth:1,borderColor:'#f18927',backgroundColor:tokens.colors.placeholder},divider:{height:1,width:200,maxWidth:'100%',backgroundColor:tokens.colors.subtleBorder},warning:{fontFamily:tokens.fonts.body,fontSize:11,lineHeight:16,color:'white'}});

@@ -1,0 +1,22 @@
+import {test} from 'node:test';import assert from 'node:assert/strict';
+import Fastify from 'fastify';
+import {hashSessionToken} from '../../../api/src/modules/authentication/session';
+import {developmentMemberView} from '../../../api/src/development/member-fixture';
+import {ApiClient} from './client';import {MemberService} from './member-service';
+import {changedProfileFields,profileDraft} from '../features/profile/editable-fields';
+test('native profile service crosses real bearer routes with changed-only PATCH then persisted read',async t=>{
+ const apiModule=(path:string)=>import('../../../api/src/'+path);
+ const [{registerProfileRoutes},{normalizeProfileUpdate},{registerMemberRoutes},{readEnvironment}]=await Promise.all([apiModule('modules/profiles/routes.ts'),apiModule('modules/profiles/service.ts'),apiModule('modules/members/routes.ts'),apiModule('config/env.ts')]);
+ const view=structuredClone(developmentMemberView),token='p'.repeat(43),writes:unknown[]=[];
+ view.profile!.phone='+12025550123';
+ const sessions={resolve:async(hash:string)=>hash===hashSessionToken(token)?{sessionId:'session',userId:'user',email:'member@example.invalid'}:null,revoke:async()=>{}};
+ const app=Fastify();t.after(()=>app.close());
+ await registerMemberRoutes(app,readEnvironment({NODE_ENV:'test'}),{sessions,members:{memberships:async()=>[],membership:async()=>({userId:'user',tribeId:view.identity.tribeId,role:'member',status:'active'}),view:async()=>view}});
+ registerProfileRoutes(app,{update:async(identity:{userId:string},tribeId:string,body:unknown)=>{assert.equal(identity.userId,'user');assert.equal(tribeId,view.identity.tribeId);const update=normalizeProfileUpdate(body);writes.push(update);Object.assign(view.profile!,update);}},sessions);
+ const transport:typeof fetch=async(input,init)=>{const url=new URL(String(input));const response=await app.inject({method:init?.method as 'GET'|'PATCH',url:url.pathname,headers:Object.fromEntries(new Headers(init?.headers)),payload:init?.body as string|undefined});return new Response(response.statusCode===204?null:response.body,{status:response.statusCode,headers:response.headers as Record<string,string>});};
+ const service=new MemberService(new ApiClient('https://api.example.invalid',{token:()=>token,refresh:async()=>null,clear:async()=>{}},transport));
+ const initial=await service.profile(view.identity.tribeId);const update=changedProfileFields(profileDraft(initial.profile!),{...profileDraft(initial.profile!),bio:'Saved by native service',phone:null});
+ await service.updateProfile(view.identity.tribeId,update);const current=await service.profile(view.identity.tribeId);
+ assert.deepEqual(writes,[{bio:'Saved by native service',phone:null}]);assert.equal(current.profile!.bio,'Saved by native service');assert.equal(current.profile!.phone,null);assert.equal(current.profile!.email,initial.profile!.email);assert.deepEqual(current.identity,initial.identity);
+ const denied=await app.inject({method:'PATCH',url:`/api/v1/tribes/${view.identity.tribeId}/profile`,payload:{bio:'denied'}});assert.equal(denied.statusCode,401);assert.equal(writes.length,1);
+});

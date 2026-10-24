@@ -1,0 +1,3 @@
+// Bodies are not logged. These paths also protect explicit structured diagnostic logging.
+const secrets = ['accessKeyId', 'secretAccessKey', 'uploadUrl', 'proof', 'password', 'currentPassword', 'newPassword', 'password_hash', 'passwordHash', 'token', 'accessToken', 'refreshToken', 'challengeToken', 'invitationToken', 'code', 'secret', 'recoveryCode', 'recoveryCodes', 'otpAuthUrl', 'smtpUrl', 'encryptionKey', 'rateLimitKey', 'databaseUrl'];
+export const credentialRedaction = ['req.headers.authorization', 'req.headers.cookie', 'res.headers["set-cookie"]', 'req.body', 'res.body', 'err', ...secrets.flatMap(key => [key, `*.${key}`])];
