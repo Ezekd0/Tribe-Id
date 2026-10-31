@@ -8,7 +8,8 @@
     "typecheck": "tsc --noEmit",
     "export": "expo export --platform android --platform ios",
     "test": "node --import tsx --test src/api/*.test.ts ../../scripts/native-hub-integration.test.ts",
-    "build": "expo export --platform android --platform ios"
+    "build": "expo export --platform android --platform ios",
+    "eas-build-pre-install": "node ../../scripts/android-beta-preflight.mjs"
   },
   "dependencies": {
     "@expo/vector-icons": "15.1.1",
