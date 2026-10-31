@@ -1,0 +1,10 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {androidBetaPreflight as check} from './android-beta-preflight.mjs';
+const env={EXPO_PUBLIC_API_URL:'https://trueda-staging.onrender.com',EXPO_PUBLIC_APP_ENV:'testing'};
+const app={expo:{owner:'fixture-owner',extra:{eas:{projectId:'11111111-1111-4111-8111-111111111111'}}}};
+const eas={build:{preview:{distribution:'internal',environment:'preview',android:{buildType:'apk'},env:{EXPO_PUBLIC_APP_ENV:'testing'}}}};
+test('valid configuration is explicitly not deployment evidence or authorization',()=>{const result=check(env,app,eas);assert.equal(result.status,'CONFIGURATION_CHECKS_PASS');assert.equal(result.limitations.length,2);});
+test('missing and placeholder API origins fail closed',()=>{for(const value of [undefined,'','http://trueda.onrender.com','https://api.example.invalid','https://example.com','https://api.example.com','https://127.0.0.1','https://192.168.1.2','https://[::1]','https://localhost','https://host.internal','https://host.test','https://api.onrender.com/api/v1','https://api.onrender.com?token=secret','https://user:secret@api.onrender.com'])assert.equal(check({...env,EXPO_PUBLIC_API_URL:value},app,eas).status,'BLOCKED',value);});
+test('project association, testing mode and APK distribution are required',()=>{assert.equal(check(env,{},eas).status,'BLOCKED');assert.equal(check({...env,EXPO_PUBLIC_APP_ENV:'production'},app,eas).status,'BLOCKED');for(const patch of [{distribution:'store'},{environment:'production'},{android:{buildType:'app-bundle'}},{developmentClient:true}])assert.equal(check(env,app,{build:{preview:{...eas.build.preview,...patch}}}).status,'BLOCKED');});
+test('failure output never repeats URL credentials',()=>{const result=check({...env,EXPO_PUBLIC_API_URL:'https://private-user:private-password@api.onrender.com'},app,eas);assert.equal(result.status,'BLOCKED');assert.ok(!JSON.stringify(result).includes('private-password'));});

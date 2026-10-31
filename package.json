@@ -15,7 +15,7 @@
     "dev:api": "npm run dev -w @trueda-tribe-id/api",
     "typecheck": "npm run build -w @trueda-tribe-id/contracts && npm run typecheck --workspaces --if-present && tsc --project tsconfig.verify.json",
     "build": "npm run build -w @trueda-tribe-id/contracts && npm run build -w @trueda-tribe-id/api && npm run build -w @trueda-tribe-id/web",
-    "test": "npm run build -w @trueda-tribe-id/contracts && npm run test --workspaces --if-present",
+    "test": "node --test scripts/android-beta-preflight.test.mjs && npm run build -w @trueda-tribe-id/contracts && npm run test --workspaces --if-present",
     "check": "npm run typecheck && npm test && npm run build",
     "test:browser": "playwright test",
     "test:database": "node --import tsx scripts/verify-member-database.ts",
@@ -27,7 +27,8 @@
     "auth:account-state": "node --import tsx scripts/set-account-state.ts",
     "test:identity-database": "node --import tsx scripts/verify-identity-auth.ts",
     "test:device-api": "node --import tsx scripts/verify-device-api.ts",
-    "qa:operator": "node --import tsx scripts/qa-operator.ts"
+    "qa:operator": "node --import tsx scripts/qa-operator.ts",
+    "beta:preflight": "node scripts/android-beta-preflight.mjs"
   },
   "devDependencies": {
     "@playwright/test": "1.63.0",

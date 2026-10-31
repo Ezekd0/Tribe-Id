@@ -1,5 +1,7 @@
 # First cloud Android beta — release worksheet
 
+**Budget update:** The user has set a strict ₦0 budget. See [ZERO_COST_BETA.md](ZERO_COST_BETA.md). The paid estimates below are historical analysis only and are not an active deployment proposal.
+
 Status: preparation only. No Render/Expo account connection, staging URL, signed APK or device qualification is established by this document.
 
 ## Source and CI
